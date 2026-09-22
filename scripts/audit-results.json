@@ -1,0 +1,170 @@
+{
+  "timestamp": "2026-09-22T05:04:03.194Z",
+  "passes": [
+    {
+      "testName": "Backend API server active",
+      "details": {
+        "url": "http://localhost:5000/health",
+        "status": 200
+      }
+    },
+    {
+      "testName": "Public Website server active",
+      "details": {
+        "url": "http://localhost:5173",
+        "status": 200
+      }
+    },
+    {
+      "testName": "Partner Portal server active",
+      "details": {
+        "url": "http://localhost:5175",
+        "status": 200
+      }
+    },
+    {
+      "testName": "Admin Panel & CRM server active",
+      "details": {
+        "url": "http://localhost:5176",
+        "status": 200
+      }
+    },
+    {
+      "testName": "MongoDB Connection Operational",
+      "details": {
+        "status": "ready",
+        "dependencies": {
+          "mongodb": "connected",
+          "redis": "offline"
+        }
+      }
+    },
+    {
+      "testName": "Cache-Aside Hit Verified",
+      "details": {
+        "message": "Categories fetched (cached)",
+        "categories": [
+          "Business & Advisory Services",
+          "Notice & Representation",
+          "Registration Services",
+          "Taxation & Return Filing"
+        ]
+      }
+    },
+    {
+      "testName": "Public Enquiry Submitted & Lead Created",
+      "details": {
+        "referenceId": "LD-2026-0008",
+        "customerName": "Rajendra Prasad Sharma 3435"
+      }
+    },
+    {
+      "testName": "Admin Authentication Successful",
+      "details": {
+        "name": "CA Rajesh Sharma",
+        "role": "ADMIN"
+      }
+    },
+    {
+      "testName": "Lead Verified in Admin CRM Database",
+      "details": {
+        "_id": "6ab20c43eaeb3b3bdf50f499",
+        "referenceId": "LD-2026-0008",
+        "customerName": "Rajendra Prasad Sharma 3435",
+        "status": "New"
+      }
+    },
+    {
+      "testName": "Lead Converted to Client & Service Request",
+      "details": {
+        "clientId": "CLI-2026-0006",
+        "requestId": "SR-2026-0006",
+        "clientName": "Rajendra Prasad Sharma 3435"
+      }
+    },
+    {
+      "testName": "Admin Assigned Request to Partner",
+      "details": {
+        "requestId": "SR-2026-0006",
+        "assignedPartner": "CA Gurmeet Singh & Associates"
+      }
+    },
+    {
+      "testName": "Partner Authenticated Successfully",
+      "details": {
+        "name": "CA Gurmeet Singh",
+        "role": "PARTNER"
+      }
+    },
+    {
+      "testName": "Assigned Request Visible in Partner Portal",
+      "details": {
+        "requestId": "SR-2026-0006",
+        "clientName": "Rajendra Prasad Sharma 3435",
+        "status": "Submitted"
+      }
+    },
+    {
+      "testName": "Partner Updated Status to In Progress",
+      "details": {
+        "requestId": "SR-2026-0006",
+        "status": "In Progress",
+        "notesCount": 2
+      }
+    },
+    {
+      "testName": "Document Uploaded Successfully by Partner",
+      "details": {
+        "documentId": "DOC-2026-0004",
+        "documentName": "Client GST Filing Document"
+      }
+    },
+    {
+      "testName": "Authorized Partner Download Succeeded",
+      "details": {
+        "status": 200
+      }
+    },
+    {
+      "testName": "Unauthenticated Access Blocked with 401 Unauthorized",
+      "details": {
+        "status": 401
+      }
+    },
+    {
+      "testName": "Cross-Partner Unauthorized Access Blocked with 403 Forbidden",
+      "details": {
+        "status": 403
+      }
+    },
+    {
+      "testName": "Tax Invoice Generated Successfully",
+      "details": {
+        "invoiceNumber": "INV-2026-0005",
+        "subtotal": 50000,
+        "cgst": 4500,
+        "sgst": 4500,
+        "total": 59000,
+        "status": "Unpaid"
+      }
+    },
+    {
+      "testName": "Safe Test Mode Payment Recorded & Invoice Settled",
+      "details": {
+        "paymentId": "PAY-2026-0005",
+        "invoiceNumber": "INV-2026-0005",
+        "invoiceStatus": "Paid",
+        "amount": 59000
+      }
+    },
+    {
+      "testName": "Partner Commercial Records Fetched",
+      "details": {
+        "recordsCount": 2,
+        "latestMonth": "September 2026",
+        "latestCommission": 12750
+      }
+    }
+  ],
+  "failures": []
+}
