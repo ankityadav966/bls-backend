@@ -27,6 +27,8 @@ export interface ILead extends Document {
   preferredContactMethod?: string;
   assignedStaffId?: mongoose.Types.ObjectId;
   assignedStaffName?: string;
+  assignedPartnerId?: mongoose.Types.ObjectId;
+  assignedPartnerName?: string;
   status: LeadStatusType;
   estimatedValue?: number;
   convertedClientId?: mongoose.Types.ObjectId;
@@ -50,6 +52,8 @@ const LeadSchema = new Schema<ILead>(
     preferredContactMethod: { type: String, default: 'Phone Call' },
     assignedStaffId: { type: Schema.Types.ObjectId, ref: 'Staff', index: true },
     assignedStaffName: { type: String, default: 'Unassigned' },
+    assignedPartnerId: { type: Schema.Types.ObjectId, ref: 'Partner', index: true },
+    assignedPartnerName: { type: String, default: 'Unassigned' },
     status: {
       type: String,
       enum: Object.values(LEAD_STATUS),

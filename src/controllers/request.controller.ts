@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import { ServiceRequestModel } from '../models/ServiceRequest.model';
 import { PartnerModel } from '../models/Partner.model';
 import { ClientModel } from '../models/Client.model';
+import { DocumentModel } from '../models/Document.model';
 import { ActivityLogModel } from '../models/ActivityLog.model';
 import { NotificationModel } from '../models/Notification.model';
 import { sendSuccess, sendPaginated } from '../utils/apiResponse';
@@ -99,7 +101,15 @@ export class RequestController {
         }
       }
 
-      sendSuccess(res, 'Service request details', serviceReq);
+      const documents = await DocumentModel.find({
+        $or: [
+          { serviceRequestId: serviceReq.requestId },
+          { serviceRequestId: serviceReq._id.toString() },
+          ...(serviceReq.clientId ? [{ clientId: serviceReq.clientId._id || serviceReq.clientId }] : [])
+        ]
+      }).sort({ createdAt: -1 }).lean();
+
+      sendSuccess(res, 'Service request details', { ...serviceReq, documents });
     } catch (error) {
       next(error);
     }
@@ -218,9 +228,13 @@ export class RequestController {
       // Partner can only update assigned requests
       if (authUser.role === UserRole.PARTNER) {
         const partner = await PartnerModel.findOne({
-          $or: [{ userId: authUser.userId }, { email: authUser.email }]
+          $or: [
+            ...(mongoose.Types.ObjectId.isValid(authUser.userId) ? [{ userId: authUser.userId }] : []),
+            { email: authUser.email },
+            ...(authUser.partnerId && mongoose.Types.ObjectId.isValid(authUser.partnerId) ? [{ _id: authUser.partnerId }] : [])
+          ]
         });
-        if (!partner || serviceReq.partnerId?.toString() !== partner._id.toString()) {
+        if (!partner || (serviceReq.partnerId && serviceReq.partnerId.toString() !== partner._id.toString())) {
           throw new AppError('Unauthorized to update this request', 403);
         }
       }
@@ -231,15 +245,18 @@ export class RequestController {
       }
       await serviceReq.save();
 
-      await ActivityLogModel.create({
-        action: ActivityAction.STATUS_CHANGE,
-        actorId: authUser.userId,
-        actorName: authUser.name,
-        actorRole: authUser.role,
-        entityType: 'SERVICE_REQUEST',
-        entityId: serviceReq._id.toString(),
-        details: { requestId: serviceReq.requestId, status: serviceReq.status }
-      });
+      const validActorId = mongoose.Types.ObjectId.isValid(authUser?.userId) ? new mongoose.Types.ObjectId(authUser.userId) : undefined;
+      if (validActorId) {
+        await ActivityLogModel.create({
+          action: ActivityAction.STATUS_CHANGE,
+          actorId: validActorId,
+          actorName: authUser.name,
+          actorRole: authUser.role,
+          entityType: 'SERVICE_REQUEST',
+          entityId: serviceReq._id.toString(),
+          details: { requestId: serviceReq.requestId, status: serviceReq.status }
+        });
+      }
 
       sendSuccess(res, `Request status updated to ${status}`, serviceReq);
     } catch (error) {

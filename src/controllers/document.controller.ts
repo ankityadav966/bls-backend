@@ -25,34 +25,65 @@ export class DocumentController {
 
       const { title, documentType, serviceRequest, serviceRequestId, client, clientId, remarks } = req.body;
 
+      const validClientId = clientId && mongoose.Types.ObjectId.isValid(clientId) ? new mongoose.Types.ObjectId(clientId) : undefined;
+      const validUserId = authUser?.userId && mongoose.Types.ObjectId.isValid(authUser.userId) ? new mongoose.Types.ObjectId(authUser.userId) : undefined;
+
       const count = await DocumentModel.countDocuments();
       const documentId = `DOC-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+
+      // Resolve linked service request if any
+      let linkedSr: any = null;
+      if (serviceRequestId && serviceRequestId !== 'GENERAL_VAULT') {
+        linkedSr = await ServiceRequestModel.findOne({
+          $or: [
+            { requestId: serviceRequestId },
+            ...(mongoose.Types.ObjectId.isValid(serviceRequestId) ? [{ _id: serviceRequestId }] : [])
+          ]
+        });
+      }
+
+      const resolvedClientName = client || (linkedSr ? linkedSr.clientName : authUser.name) || 'Client';
+      const resolvedClientId = validClientId || (linkedSr && linkedSr.clientId ? (linkedSr.clientId._id || linkedSr.clientId) : undefined);
+      const resolvedSrTitle = serviceRequest || (linkedSr ? linkedSr.service : 'General Advisory');
+      const resolvedSrId = linkedSr ? linkedSr.requestId : (serviceRequestId !== 'GENERAL_VAULT' ? serviceRequestId : undefined);
 
       const document = await DocumentModel.create({
         documentId,
         documentName: title || file.originalname,
-        client: client || authUser.name || 'Client',
-        clientId: clientId || undefined,
-        serviceRequest: serviceRequest || 'General Advisory',
-        serviceRequestId: serviceRequestId || undefined,
+        client: resolvedClientName,
+        clientId: resolvedClientId && mongoose.Types.ObjectId.isValid(resolvedClientId) ? resolvedClientId : undefined,
+        serviceRequest: resolvedSrTitle,
+        serviceRequestId: resolvedSrId,
         documentType: documentType || 'Other',
         fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
         fileMime: file.mimetype,
         filePath: `/uploads/${file.filename}`,
         reviewStatus: DocumentStatus.PENDING,
         remarks: remarks || '',
-        uploadedBy: authUser.userId
+        uploadedBy: validUserId
       });
 
-      await ActivityLogModel.create({
-        action: ActivityAction.UPLOAD,
-        actorId: authUser.userId,
-        actorName: authUser.name,
-        actorRole: authUser.role,
-        entityType: 'DOCUMENT',
-        entityId: document._id.toString(),
-        details: { documentId: document.documentId, name: document.documentName }
-      });
+      // Update Service Request workflow status & documents count
+      if (linkedSr) {
+        linkedSr.documentsCount = (linkedSr.documentsCount || 0) + 1;
+        const curStatus = (linkedSr.status || '').toLowerCase();
+        if (!curStatus || curStatus.includes('submit') || curStatus.includes('pending')) {
+          linkedSr.status = 'Documents Received';
+        }
+        await linkedSr.save();
+      }
+
+      if (validUserId) {
+        await ActivityLogModel.create({
+          action: ActivityAction.UPLOAD,
+          actorId: validUserId,
+          actorName: authUser.name,
+          actorRole: authUser.role,
+          entityType: 'DOCUMENT',
+          entityId: document._id.toString(),
+          details: { documentId: document.documentId, name: document.documentName }
+        });
+      }
 
       logger.info(`[DocumentController] Document uploaded: ${document.documentId} by ${authUser.name}`);
 

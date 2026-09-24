@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import { LeadModel } from '../models/Lead.model';
 import { ClientModel } from '../models/Client.model';
 import { ServiceRequestModel } from '../models/ServiceRequest.model';
 import { ActivityLogModel } from '../models/ActivityLog.model';
 import { NotificationModel } from '../models/Notification.model';
+import { PartnerModel } from '../models/Partner.model';
 import { sendSuccess, sendPaginated } from '../utils/apiResponse';
 import { AppError } from '../middleware/error.middleware';
 import { LeadStatus, RequestStatus, ActivityAction } from '../constants';
@@ -17,21 +19,28 @@ export class LeadController {
       const {
         fullName,
         name,
+        customerName,
         email,
         phone,
+        mobile,
+        contactNumber,
         service,
         serviceRequired,
+        requirement,
+        category,
+        preferredContactMethod,
         message,
         notes,
         city,
         source = 'Public Website'
       } = req.body;
 
-      const clientName = fullName || name;
-      const clientService = serviceRequired || service || 'General Consultation';
-      const clientMessage = message || notes || '';
+      const clientName = fullName || name || customerName;
+      const clientPhone = mobile || phone || contactNumber;
+      const clientService = service || serviceRequired || 'General Consultation';
+      const clientMessage = requirement || message || notes || '';
 
-      if (!clientName || !email || !phone) {
+      if (!clientName || !email || !clientPhone) {
         throw new AppError('Full name, email, and phone number are required', 400);
       }
 
@@ -42,10 +51,12 @@ export class LeadController {
       // Create Lead in MongoDB
       const lead = await LeadModel.create({
         referenceId,
-        customerName: clientName.trim(),
-        email: email.toLowerCase().trim(),
-        mobile: phone.trim(),
+        customerName: String(clientName).trim(),
+        email: String(email).toLowerCase().trim(),
+        mobile: String(clientPhone).trim(),
         serviceInterested: clientService,
+        category: category || '',
+        preferredContactMethod: preferredContactMethod || 'Phone Call',
         requirement: clientMessage,
         city: city || 'New Delhi',
         leadSource: source,
@@ -126,6 +137,7 @@ export class LeadController {
       const total = await LeadModel.countDocuments(filter);
       const leads = await LeadModel.find(filter)
         .populate('assignedStaffId', 'name email mobile department')
+        .populate('assignedPartnerId', 'partnerName email mobile qualification firmName')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -140,8 +152,11 @@ export class LeadController {
   // GET /api/v1/leads/:id
   static async getLeadById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const lead = await LeadModel.findById(req.params.id)
+      const { id } = req.params;
+      const isObjectId = mongoose.Types.ObjectId.isValid(id);
+      const lead = await (isObjectId ? LeadModel.findById(id) : LeadModel.findOne({ referenceId: id }))
         .populate('assignedStaffId', 'name email mobile department')
+        .populate('assignedPartnerId', 'partnerName email mobile qualification firmName')
         .lean();
 
       if (!lead) {
@@ -201,21 +216,60 @@ export class LeadController {
   // PATCH /api/v1/leads/:id
   static async updateLead(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { status, assignedStaffId, assignedStaffName, notes, estimatedValue } = req.body;
+      const {
+        status,
+        assignedStaffId,
+        assignedStaffName,
+        assignedPartnerId,
+        assignedPartnerName,
+        notes,
+        estimatedValue
+      } = req.body;
       const authUser = (req as any).user;
 
-      const lead = await LeadModel.findById(req.params.id);
+      const { id } = req.params;
+      const isObjectId = mongoose.Types.ObjectId.isValid(id);
+      const lead = isObjectId ? await LeadModel.findById(id) : await LeadModel.findOne({ referenceId: id });
       if (!lead) {
         throw new AppError('Lead not found', 404);
       }
 
       if (status) lead.status = status;
-      if (assignedStaffId !== undefined) lead.assignedStaffId = assignedStaffId;
+      if (assignedStaffId !== undefined) lead.assignedStaffId = assignedStaffId || undefined;
       if (assignedStaffName !== undefined) lead.assignedStaffName = assignedStaffName;
+      if (assignedPartnerId !== undefined) lead.assignedPartnerId = assignedPartnerId || undefined;
+      if (assignedPartnerName !== undefined) lead.assignedPartnerName = assignedPartnerName;
       if (estimatedValue !== undefined) lead.estimatedValue = estimatedValue;
+
+      if (assignedPartnerId && assignedPartnerName) {
+        lead.timeline.push({
+          action: 'Partner Assigned',
+          actor: authUser?.name || 'Admin',
+          details: `Lead assigned to partner: ${assignedPartnerName}`,
+          timestamp: new Date()
+        });
+
+        // Notify partner if partner has userId
+        try {
+          const partner = await PartnerModel.findById(assignedPartnerId);
+          if (partner && partner.userId) {
+            await NotificationModel.create({
+              notificationId: `NOTIF-${Date.now()}`,
+              userId: partner.userId,
+              title: 'New Client Lead Assigned',
+              description: `You have been assigned lead ${lead.referenceId} (${lead.customerName} - ${lead.serviceInterested}).`,
+              category: 'Lead',
+              link: '/requests'
+            });
+          }
+        } catch (e) {
+          logger.warn(`Could not dispatch notification to partner ${assignedPartnerId}`);
+        }
+      }
+
       if (notes) {
         lead.notes.push({
-          author: authUser.name || 'Staff',
+          author: authUser?.name || 'Staff',
           content: notes,
           createdAt: new Date()
         });
@@ -223,7 +277,7 @@ export class LeadController {
 
       lead.timeline.push({
         action: 'Lead Updated',
-        actor: authUser.name || 'Staff',
+        actor: authUser?.name || 'Staff',
         details: `Status set to ${lead.status}`,
         timestamp: new Date()
       });
@@ -233,12 +287,12 @@ export class LeadController {
       // Log activity
       await ActivityLogModel.create({
         action: ActivityAction.UPDATE,
-        actorId: authUser.userId,
-        actorName: authUser.name,
-        actorRole: authUser.role,
+        actorId: authUser?.userId,
+        actorName: authUser?.name || 'Admin',
+        actorRole: authUser?.role || 'Admin',
         entityType: 'LEAD',
         entityId: lead._id.toString(),
-        details: { referenceId: lead.referenceId, status: lead.status }
+        details: { referenceId: lead.referenceId, status: lead.status, assignedPartnerName: lead.assignedPartnerName }
       });
 
       sendSuccess(res, 'Lead updated successfully', lead);
@@ -251,10 +305,16 @@ export class LeadController {
   static async convertToClient(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const authUser = (req as any).user;
-      const lead = await LeadModel.findById(req.params.id);
+      const { id } = req.params;
+      const isObjectId = mongoose.Types.ObjectId.isValid(id);
+      const lead = isObjectId ? await LeadModel.findById(id) : await LeadModel.findOne({ referenceId: id });
       if (!lead) {
         throw new AppError('Lead not found', 404);
       }
+
+      const { partnerId, partnerName, businessName, pan, gstin } = req.body;
+      const targetPartnerId = partnerId || lead.assignedPartnerId;
+      const targetPartnerName = partnerName || lead.assignedPartnerName;
 
       // Check if client already exists with this email
       let client = await ClientModel.findOne({ email: lead.email });
@@ -265,9 +325,11 @@ export class LeadController {
         client = await ClientModel.create({
           clientId: clientCode,
           clientName: lead.customerName,
-          businessName: lead.customerName,
+          businessName: businessName || lead.customerName,
           email: lead.email,
           mobile: lead.mobile,
+          pan: pan || undefined,
+          gstin: gstin || undefined,
           city: lead.city || 'New Delhi',
           state: 'Delhi (07)',
           totalServices: 1,
@@ -288,8 +350,10 @@ export class LeadController {
         clientId: client._id,
         service: lead.serviceInterested || 'General Consultation',
         category: 'Taxation & Advisory',
-        requestSource: 'Public Website',
-        assignedStaff: 'Unassigned',
+        requestSource: targetPartnerId ? 'Partner Portal' : 'Public Website',
+        partnerId: targetPartnerId || undefined,
+        partnerName: targetPartnerName && targetPartnerName !== 'Unassigned' ? targetPartnerName : undefined,
+        assignedStaff: lead.assignedStaffName || 'Unassigned',
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: RequestStatus.SUBMITTED,
         feeAmount: lead.estimatedValue || 0,
@@ -299,19 +363,42 @@ export class LeadController {
       // Update lead status
       lead.status = LeadStatus.CONVERTED;
       lead.convertedClientId = client._id;
+      if (targetPartnerId) {
+        lead.assignedPartnerId = targetPartnerId;
+        lead.assignedPartnerName = targetPartnerName;
+      }
       lead.timeline.push({
         action: 'Converted to Client',
-        actor: authUser.name || 'Admin',
-        details: `Converted to Client ${client.clientId}`,
+        actor: authUser?.name || 'Admin',
+        details: `Converted to Client ${client.clientId}${targetPartnerName ? ` (Assigned to Partner ${targetPartnerName})` : ''}`,
         timestamp: new Date()
       });
       await lead.save();
 
+      // Notify partner if assigned
+      if (targetPartnerId) {
+        try {
+          const partner = await PartnerModel.findById(targetPartnerId);
+          if (partner && partner.userId) {
+            await NotificationModel.create({
+              notificationId: `NOTIF-${Date.now()}`,
+              userId: partner.userId,
+              title: 'New Service Request Assigned',
+              description: `Work order ${requestCode} for ${client.clientName} (${serviceRequest.service}) has been assigned to your firm.`,
+              category: 'Request',
+              link: '/requests'
+            });
+          }
+        } catch (e) {
+          logger.warn(`Could not dispatch notification to partner ${targetPartnerId}`);
+        }
+      }
+
       await ActivityLogModel.create({
         action: ActivityAction.CONVERT,
-        actorId: authUser.userId,
-        actorName: authUser.name,
-        actorRole: authUser.role,
+        actorId: authUser?.userId,
+        actorName: authUser?.name || 'Admin',
+        actorRole: authUser?.role || 'Admin',
         entityType: 'LEAD',
         entityId: lead._id.toString(),
         details: { referenceId: lead.referenceId, clientId: client.clientId }
@@ -330,10 +417,26 @@ export class LeadController {
   // DELETE /api/v1/leads/:id
   static async deleteLead(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const lead = await LeadModel.findByIdAndDelete(req.params.id);
+      const { id } = req.params;
+      const isObjectId = mongoose.Types.ObjectId.isValid(id);
+      const lead = isObjectId 
+        ? await LeadModel.findByIdAndDelete(id)
+        : await LeadModel.findOneAndDelete({ referenceId: id });
+
       if (!lead) {
         throw new AppError('Lead not found', 404);
       }
+
+      await ActivityLogModel.create({
+        action: ActivityAction.DELETE,
+        actorId: (req as any).user?.userId,
+        actorName: (req as any).user?.name || 'Admin',
+        actorRole: (req as any).user?.role || 'Admin',
+        entityType: 'LEAD',
+        entityId: lead._id.toString(),
+        details: { referenceId: lead.referenceId, customerName: lead.customerName }
+      });
+
       sendSuccess(res, 'Lead deleted successfully');
     } catch (error) {
       next(error);

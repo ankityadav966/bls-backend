@@ -3,14 +3,21 @@
   "version": "1.0.0",
   "description": "BLS AND COMPANY Enterprise Backend & Multi-Portal API System",
   "main": "dist/server.js",
-  "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "tsx src/utils/seedData.ts"
   },
-  "keywords": ["bls", "ca", "crm", "api", "express", "mongodb", "redis"],
+  "keywords": [
+    "bls",
+    "ca",
+    "crm",
+    "api",
+    "express",
+    "mongodb",
+    "redis"
+  ],
   "author": "BLS AND COMPANY",
   "license": "ISC",
   "dependencies": {

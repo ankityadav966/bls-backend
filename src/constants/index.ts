@@ -33,6 +33,7 @@ export type PartnerStatusType = (typeof PARTNER_STATUS)[keyof typeof PARTNER_STA
 
 export const REQUEST_STATUS = {
   SUBMITTED: 'Submitted',
+  DOCUMENTS_RECEIVED: 'Documents Received',
   UNDER_REVIEW: 'Under Review',
   DOCUMENTS_PENDING: 'Documents Pending',
   PROCESSING: 'Processing',

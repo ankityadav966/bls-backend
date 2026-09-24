@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ClientModel } from '../models/Client.model';
 import { ServiceRequestModel } from '../models/ServiceRequest.model';
+import { PartnerModel } from '../models/Partner.model';
 import { DocumentModel } from '../models/Document.model';
 import { InvoiceModel } from '../models/Invoice.model';
 import { ActivityLogModel } from '../models/ActivityLog.model';
@@ -9,15 +10,31 @@ import { AppError } from '../middleware/error.middleware';
 import { UserRole, ActivityAction } from '../constants';
 
 export class ClientController {
-  // GET /api/v1/clients (Admin & Staff)
+  // GET /api/v1/clients (Admin, Staff & Partner)
   static async getClients(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      const authUser = (req as any).user;
       const page = parseInt(req.query.page as string, 10) || 1;
       const limit = parseInt(req.query.limit as string, 10) || 20;
       const status = req.query.status as string;
       const search = req.query.search as string;
 
       const filter: any = {};
+
+      // Role-based scoping for partner
+      if (authUser?.role === UserRole.PARTNER) {
+        const partner = await PartnerModel.findOne({
+          $or: [{ userId: authUser.userId }, { email: authUser.email }]
+        });
+        if (partner) {
+          const clientIds = await ServiceRequestModel.find({ partnerId: partner._id }).distinct('clientId');
+          filter.$or = [
+            { _id: { $in: clientIds } },
+            { partnerId: partner._id }
+          ];
+        }
+      }
+
       if (status && status !== 'all') {
         filter.accountStatus = status;
       }
