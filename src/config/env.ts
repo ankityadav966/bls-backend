@@ -20,6 +20,10 @@ const envSchema = z.object({
   CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176'),
   UPLOAD_DIR: z.string().default('./uploads'),
   MAX_FILE_SIZE_MB: z.string().default('15').transform((val) => parseInt(val, 10)),
+  CLOUDINARY_CLOUD_NAME: z.string().optional().default('dswm5fwef'),
+  CLOUDINARY_API_KEY: z.string().optional().default('388112731967314'),
+  CLOUDINARY_API_SECRET: z.string().optional().default('TFkIJh_sZ1AbcROEt8vfEJbe0RA'),
+  CLOUDINARY_FOLDER: z.string().optional().default('BLS'),
 });
 
 export const env = envSchema.parse(process.env);

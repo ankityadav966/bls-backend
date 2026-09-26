@@ -11,6 +11,7 @@ import { sendSuccess, sendPaginated } from '../utils/apiResponse';
 import { AppError } from '../middleware/error.middleware';
 import { DocumentStatus, ActivityAction, UserRole } from '../constants';
 import { logger } from '../utils/logger';
+import { uploadFileToCloudinary } from '../config/cloudinary';
 
 export class DocumentController {
   // POST /api/v1/documents/upload
@@ -47,6 +48,16 @@ export class DocumentController {
       const resolvedSrTitle = serviceRequest || (linkedSr ? linkedSr.service : 'General Advisory');
       const resolvedSrId = linkedSr ? linkedSr.requestId : (serviceRequestId !== 'GENERAL_VAULT' ? serviceRequestId : undefined);
 
+      // Upload directly to Cloudinary into BLS folder
+      let cloudFilePath = `/uploads/${file.filename}`;
+      try {
+        const cloudUpload = await uploadFileToCloudinary(file.path, 'documents', true);
+        cloudFilePath = cloudUpload.secureUrl;
+        logger.info(`[DocumentController] Document successfully uploaded to Cloudinary: ${cloudFilePath}`);
+      } catch (cloudErr) {
+        logger.warn('[DocumentController] Cloudinary upload error, using local fallback:', cloudErr);
+      }
+
       const document = await DocumentModel.create({
         documentId,
         documentName: title || file.originalname,
@@ -57,7 +68,7 @@ export class DocumentController {
         documentType: documentType || 'Other',
         fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
         fileMime: file.mimetype,
-        filePath: `/uploads/${file.filename}`,
+        filePath: cloudFilePath,
         reviewStatus: DocumentStatus.PENDING,
         remarks: remarks || '',
         uploadedBy: validUserId

@@ -7,7 +7,8 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed": "tsx src/utils/seedData.ts"
+    "seed": "tsx src/utils/seedData.ts",
+    "migrate:atlas": "tsx scripts/migrate-local-to-atlas.ts"
   },
   "keywords": [
     "bls",
@@ -23,6 +24,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "bullmq": "^5.41.6",
+    "cloudinary": "^2.11.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
