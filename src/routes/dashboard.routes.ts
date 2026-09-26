@@ -7,6 +7,8 @@ import { UserRole } from '../constants';
 const router = Router();
 
 router.use(authenticate);
+router.get('/', authorize(UserRole.ADMIN, UserRole.STAFF), DashboardController.getAdminDashboard);
+router.get('/stats', authorize(UserRole.ADMIN, UserRole.STAFF), DashboardController.getAdminDashboard);
 router.get('/admin', authorize(UserRole.ADMIN, UserRole.STAFF), DashboardController.getAdminDashboard);
 
 export default router;

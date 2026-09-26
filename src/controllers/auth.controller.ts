@@ -68,11 +68,11 @@ export class AuthController {
       // Find role-specific profile ID if exists
       let profileData: any = null;
       if (user.role === UserRole.PARTNER) {
-        profileData = await PartnerModel.findOne({ userId: user._id }).lean();
+        profileData = await PartnerModel.findOne({ $or: [{ userId: user._id }, { email: user.email }] }).lean();
       } else if (user.role === UserRole.CLIENT) {
-        profileData = await ClientModel.findOne({ email: user.email }).lean();
+        profileData = await ClientModel.findOne({ $or: [{ userId: user._id }, { email: user.email }] }).lean();
       } else if (user.role === UserRole.STAFF) {
-        profileData = await StaffModel.findOne({ userId: user._id }).lean();
+        profileData = await StaffModel.findOne({ $or: [{ userId: user._id }, { email: user.email }] }).lean();
       }
 
       const { accessToken, refreshToken } = generateTokens(user);
@@ -174,11 +174,11 @@ export class AuthController {
 
       let profileData: any = null;
       if (user.role === UserRole.PARTNER) {
-        profileData = await PartnerModel.findOne({ userId: user._id }).lean();
+        profileData = await PartnerModel.findOne({ $or: [{ userId: user._id }, { email: user.email }] }).lean();
       } else if (user.role === UserRole.CLIENT) {
-        profileData = await ClientModel.findOne({ email: user.email }).lean();
+        profileData = await ClientModel.findOne({ $or: [{ userId: user._id }, { email: user.email }] }).lean();
       } else if (user.role === UserRole.STAFF) {
-        profileData = await StaffModel.findOne({ userId: user._id }).lean();
+        profileData = await StaffModel.findOne({ $or: [{ userId: user._id }, { email: user.email }] }).lean();
       }
 
       sendSuccess(res, 'User profile fetched', {

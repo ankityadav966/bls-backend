@@ -7,8 +7,12 @@ export const connectDatabase = async (): Promise<void> => {
     mongoose.set('strictQuery', true);
     
     await mongoose.connect(env.MONGODB_URI, {
-      autoIndex: true,
-      serverSelectionTimeoutMS: 5000,
+      autoIndex: false,
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 30000,
+      maxPoolSize: 20,
+      minPoolSize: 5,
     });
 
     logger.info(`[MongoDB] Connected successfully to ${mongoose.connection.host}:${mongoose.connection.port}/${mongoose.connection.name}`);
