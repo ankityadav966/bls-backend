@@ -20,9 +20,9 @@ const router = Router();
 router.post('/enquiries', apiLimiter, LeadController.submitPublicEnquiry);
 router.post('/partners', apiLimiter, PartnerController.registerPartner);
 
-// Versioned API v1 Router
 const v1Router = Router();
 
+v1Router.post('/enquiries', apiLimiter, LeadController.submitPublicEnquiry);
 v1Router.use('/auth', authRoutes);
 v1Router.use('/leads', leadRoutes);
 v1Router.use('/partners', partnerRoutes);

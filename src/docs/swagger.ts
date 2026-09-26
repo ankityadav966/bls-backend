@@ -11,8 +11,12 @@ export const swaggerDocument = {
   },
   servers: [
     {
-      url: 'http://localhost:5000/api/v1',
-      description: 'Local Development Server'
+      url: 'https://pls.durgaselector.com/api/v1',
+      description: 'Production API Server'
+    },
+    {
+      url: 'http://bls.durgagenerator.com/api/v1',
+      description: 'Live AWS EC2 API Server'
     }
   ],
   components: {
