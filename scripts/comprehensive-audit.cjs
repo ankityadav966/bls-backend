@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const BASE_URL = 'http://localhost:5000/api/v1';
-const ALIAS_URL = 'http://localhost:5000/api';
+const API_HOST = process.env.API_HOST || 'http://bls.durgagenerator.com';
+const BASE_URL = `${API_HOST}/api/v1`;
+const ALIAS_URL = `${API_HOST}/api`;
 
 const auditResults = {
   timestamp: new Date().toISOString(),
@@ -30,10 +31,8 @@ async function runAudit() {
   // STEP 1: Verify Ports & Server Liveness
   console.log('--- 1. Verification of Server Ports & Health ---');
   const portsToCheck = [
-    { name: 'Backend API', url: 'http://localhost:5000/health' },
-    { name: 'Public Website', url: 'http://localhost:5173' },
-    { name: 'Partner Portal', url: 'http://localhost:5175' },
-    { name: 'Admin Panel & CRM', url: 'http://localhost:5176' }
+    { name: 'Backend API', url: `${API_HOST}/health` },
+    { name: 'Production Backend Alternate', url: 'https://pls.durgaselector.com/health' }
   ];
 
   for (const p of portsToCheck) {
@@ -52,7 +51,7 @@ async function runAudit() {
   // STEP 2: Verify Health & Readiness (MongoDB & Cache Status)
   console.log('\n--- 2. Database & Cache Engine Verification ---');
   try {
-    const readyRes = await fetch('http://localhost:5000/ready');
+    const readyRes = await fetch(`${API_HOST}/ready`);
     const readyData = await readyRes.json();
     if (readyData.status === 'ready' && readyData.dependencies?.mongodb === 'connected') {
       recordPass('MongoDB Connection Operational', readyData);

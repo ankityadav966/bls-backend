@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const LOCAL_URI = 'mongodb://127.0.0.1:27017/bls_and_company';
+const LOCAL_URI = process.env.SOURCE_MONGODB_URI || 'mongodb+srv://akraoshab0009_db_user:ZzWRJCEJkfojlSt8@cluster0.wu3i78y.mongodb.net/durgagenerator?retryWrites=true&w=majority&appName=Cluster0';
 const ATLAS_URI = 'mongodb+srv://akraoshab0009_db_user:ZzWRJCEJkfojlSt8@cluster0.wu3i78y.mongodb.net/BLS?retryWrites=true&w=majority&appName=Cluster0';
 
 async function migrate() {

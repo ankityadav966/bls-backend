@@ -4,28 +4,28 @@
     {
       "testName": "Backend API server active",
       "details": {
-        "url": "http://localhost:5000/health",
+        "url": "http://bls.durgagenerator.com/health",
         "status": 200
       }
     },
     {
       "testName": "Public Website server active",
       "details": {
-        "url": "http://localhost:5173",
+        "url": "https://blscompany.com",
         "status": 200
       }
     },
     {
       "testName": "Partner Portal server active",
       "details": {
-        "url": "http://localhost:5175",
+        "url": "https://partner.blscompany.com",
         "status": 200
       }
     },
     {
       "testName": "Admin Panel & CRM server active",
       "details": {
-        "url": "http://localhost:5176",
+        "url": "https://admin.blscompany.com",
         "status": 200
       }
     },

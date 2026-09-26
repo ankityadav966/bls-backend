@@ -26,14 +26,9 @@ export const createApp = (): Express => {
 
   // CORS Configuration
   const defaultAllowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    'http://localhost:5176',
-    'http://127.0.0.1:5173',
-    'http://127.0.0.1:5174',
-    'http://127.0.0.1:5175',
-    'http://127.0.0.1:5176',
+    'https://pls.durgaselector.com',
+    'http://bls.durgagenerator.com',
+    'https://bls.durgagenerator.com',
     ...(env.CORS_ORIGINS || [])
   ];
 

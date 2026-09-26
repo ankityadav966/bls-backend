@@ -17,11 +17,11 @@ const startServer = async () => {
     // 3. Start Listening
     const server = app.listen(env.PORT, () => {
       logger.info('========================================================');
-      logger.info(` BLS AND COMPANY Backend running in ${env.NODE_ENV} mode`);
-      logger.info(` Server URL:        http://localhost:${env.PORT}`);
-      logger.info(` API v1 Base:       http://localhost:${env.PORT}/api/v1`);
-      logger.info(` Swagger Docs:      http://localhost:${env.PORT}/api/docs`);
-      logger.info(` Health Check:      http://localhost:${env.PORT}/health`);
+      logger.info(` BLS AND COMPANY Backend running on port ${env.PORT} in ${env.NODE_ENV} mode`);
+      logger.info(` Production Base:   https://pls.durgaselector.com`);
+      logger.info(` API v1 Base:       https://pls.durgaselector.com/api/v1`);
+      logger.info(` Swagger Docs:      https://pls.durgaselector.com/api/docs`);
+      logger.info(` Health Check:      https://pls.durgaselector.com/health`);
       logger.info('========================================================');
     });
 
