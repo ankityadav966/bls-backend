@@ -26,23 +26,24 @@ export class EmailService {
 
       // If user provided credentials
       if (smtpUser && smtpPass) {
-        if (smtpHost && smtpHost.includes('gmail')) {
+        const cleanPass = smtpPass.replace(/\s+/g, '');
+        if (!smtpHost || smtpHost.includes('gmail') || smtpUser.includes('@gmail.com')) {
           return nodemailer.createTransport({
             service: 'gmail',
             auth: {
               user: smtpUser,
-              pass: smtpPass
+              pass: cleanPass
             }
           });
         }
 
         return nodemailer.createTransport({
-          host: smtpHost || 'smtp.gmail.com',
+          host: smtpHost,
           port: smtpPort,
           secure: smtpPort === 465,
           auth: {
             user: smtpUser,
-            pass: smtpPass
+            pass: cleanPass
           }
         });
       }
@@ -54,7 +55,7 @@ export class EmailService {
           port: Number(process.env.SMTP_PORT || 587),
           auth: process.env.SMTP_USER ? {
             user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS || ''
+            pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : ''
           } : undefined
         });
       }
@@ -71,8 +72,10 @@ export class EmailService {
    */
   public static async sendMail(options: EmailOptions): Promise<boolean> {
     try {
+      const dbSettings = await SettingsModel.findOne().lean();
       const transporter = await this.getTransporter();
-      const senderAddress = process.env.EMAIL_FROM || 'notifications@blscompany.com';
+      const smtpUser = dbSettings?.smtpUser || process.env.SMTP_USER;
+      const senderAddress = process.env.EMAIL_FROM || smtpUser || 'notifications@blscompany.com';
       const senderName = 'BLS AND COMPANY';
 
       if (transporter) {
