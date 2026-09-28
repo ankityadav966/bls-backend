@@ -15,6 +15,7 @@ import { redisClient } from './config/redis';
 
 export const createApp = (): Express => {
   const app = express();
+  app.set('trust proxy', 1);
 
   // Security Headers
   app.use(
@@ -26,7 +27,6 @@ export const createApp = (): Express => {
 
   // CORS Configuration
   const defaultAllowedOrigins = [
-    'https://pls.durgaselector.com',
     'http://bls.durgagenerator.com',
     'https://bls.durgagenerator.com',
     ...(env.CORS_ORIGINS || [])
@@ -35,10 +35,10 @@ export const createApp = (): Express => {
   app.use(
     cors({
       origin: (origin, callback) => {
-        if (!origin || defaultAllowedOrigins.includes(origin)) {
+        if (!origin || defaultAllowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
           callback(null, true);
         } else {
-          callback(null, true); // Permissive in dev, strict in prod
+          callback(null, true); // Permissive for all origins
         }
       },
       credentials: true,
