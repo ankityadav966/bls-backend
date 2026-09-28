@@ -12,6 +12,7 @@ import { LeadStatus, RequestStatus, ActivityAction } from '../constants';
 import { QueueService } from '../services/queue.service';
 import { logger } from '../utils/logger';
 import { generateUniqueLeadId, generateUniqueRequestId } from '../utils/idGenerator';
+import { EmailService } from '../services/email.service';
 
 export class LeadController {
   // POST /api/v1/leads/public or /api/enquiries (Public Website Contact/Enquiry Form)
@@ -89,6 +90,27 @@ export class LeadController {
         category: 'Enquiry',
         link: '/leads'
       });
+
+      // Dispatch live email alert to Admin
+      EmailService.sendNewEnquiryAlertToAdmin({
+        referenceId: lead.referenceId,
+        customerName: lead.customerName,
+        mobile: lead.mobile,
+        email: lead.email,
+        serviceInterested: lead.serviceInterested,
+        city: lead.city,
+        notes: message || requirement || notes
+      }).catch(err => logger.warn(`[LeadController] Failed to dispatch admin enquiry alert: ${err.message}`));
+
+      // Dispatch confirmation email to customer
+      if (lead.email) {
+        EmailService.sendEnquiryConfirmationToCustomer({
+          referenceId: lead.referenceId,
+          customerName: lead.customerName,
+          email: lead.email,
+          serviceInterested: lead.serviceInterested
+        }).catch(err => logger.warn(`[LeadController] Failed to dispatch customer confirmation email: ${err.message}`));
+      }
 
       logger.info(`[LeadController] New lead received: ${lead.referenceId} (${lead.email})`);
 
@@ -289,6 +311,19 @@ export class LeadController {
                 category: 'Lead',
                 link: '/requests'
               });
+            }
+
+            if (partner.email) {
+              EmailService.sendCaseAssignedToPartnerEmail({
+                partnerName: partner.partnerName,
+                partnerEmail: partner.email,
+                referenceId: lead.referenceId,
+                clientName: lead.customerName,
+                serviceInterested: lead.serviceInterested,
+                mobile: lead.mobile,
+                email: lead.email,
+                notes: notes || lead.serviceInterested
+              }).catch(err => logger.warn(`[LeadController] Failed to dispatch case assignment email to partner: ${err.message}`));
             }
           }
         } catch (e: any) {

@@ -11,6 +11,7 @@ import { AppError } from '../middleware/error.middleware';
 import { PartnerStatus, UserRole, ActivityAction } from '../constants';
 import { logger } from '../utils/logger';
 import { generateUniquePartnerId } from '../utils/idGenerator';
+import { EmailService } from '../services/email.service';
 
 export class PartnerController {
   // POST /api/v1/partners/register or /api/partners (Public Website / Partner Portal application)
@@ -167,6 +168,16 @@ export class PartnerController {
 
       user.partnerId = partner._id;
       await user.save();
+
+      // Dispatch Partner Welcome & Credentials Email asynchronously
+      EmailService.sendPartnerWelcomeEmail({
+        partnerName: pName.trim(),
+        email: email.toLowerCase().trim(),
+        partnerId,
+        qualification,
+        firmName: partner.firmName,
+        password
+      }).catch(err => logger.warn(`[PartnerController] Failed to dispatch welcome email: ${err.message}`));
 
       sendSuccess(res, 'Partner created successfully by Admin', {
         partner,

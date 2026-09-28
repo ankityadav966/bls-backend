@@ -6,8 +6,10 @@ import { UserRole } from '../constants';
 
 const router = Router();
 
-// Public knowledge / FAQs
+// Public knowledge & CMS website settings
 router.get('/knowledge', MiscController.getKnowledge);
+router.get('/settings/public', MiscController.getSettings);
+router.get('/settings', MiscController.getSettings);
 
 // Authenticated routes
 router.use(authenticate);
