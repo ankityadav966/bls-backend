@@ -5,6 +5,7 @@ export const generalLimiter = rateLimit({
   max: 500, // Limit each IP to 500 requests per window
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: {
     success: false,
     message: 'Too many requests from this IP address. Please try again after 15 minutes.',
@@ -18,6 +19,7 @@ export const authLimiter = rateLimit({
   max: 30, // Limit authentication attempts
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: {
     success: false,
     message: 'Too many authentication attempts. Please try again after 15 minutes.',
@@ -29,6 +31,7 @@ export const enquiryLimiter = rateLimit({
   max: 20, // Max 20 public enquiry submissions per 10 mins
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: {
     success: false,
     message: 'Too many enquiries submitted from this network. Please wait a few minutes.',
