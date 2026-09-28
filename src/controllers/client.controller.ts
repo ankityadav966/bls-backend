@@ -8,6 +8,7 @@ import { ActivityLogModel } from '../models/ActivityLog.model';
 import { sendSuccess, sendPaginated } from '../utils/apiResponse';
 import { AppError } from '../middleware/error.middleware';
 import { UserRole, ActivityAction } from '../constants';
+import { generateUniqueClientId } from '../utils/idGenerator';
 
 export class ClientController {
   // GET /api/v1/clients (Admin, Staff & Partner)
@@ -100,8 +101,8 @@ export class ClientController {
         throw new AppError('A client with this email already exists', 409);
       }
 
-      const count = await ClientModel.countDocuments();
-      const clientId = `CLI-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+      // Generate Unique Client ID
+      const clientId = await generateUniqueClientId();
 
       const client = await ClientModel.create({
         clientId,

@@ -19,6 +19,7 @@ router.get('/me/payouts', authorize(UserRole.PARTNER), PartnerController.getPart
 
 // Admin & Partner profile endpoints
 router.get('/', authorize(UserRole.ADMIN, UserRole.STAFF), PartnerController.getPartners);
+router.post('/', authorize(UserRole.ADMIN), PartnerController.createPartnerAdmin);
 router.get('/:id', authorize(UserRole.ADMIN, UserRole.STAFF, UserRole.PARTNER), PartnerController.getPartnerById);
 router.patch('/:id/status', authorize(UserRole.ADMIN), PartnerController.updatePartnerStatus);
 

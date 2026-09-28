@@ -11,6 +11,7 @@ import { SettingsModel } from '../models/Settings.model';
 import { sendSuccess, sendPaginated } from '../utils/apiResponse';
 import { AppError } from '../middleware/error.middleware';
 import { UserRole } from '../constants';
+import { generateUniqueStaffId, generateUniqueFollowUpId } from '../utils/idGenerator';
 
 export class MiscController {
   // Staff
@@ -41,8 +42,8 @@ export class MiscController {
         status: 'ACTIVE'
       });
 
-      const count = await StaffModel.countDocuments();
-      const staffId = `STF-${String(count + 1).padStart(3, '0')}`;
+      // Generate Unique Staff ID
+      const staffId = await generateUniqueStaffId();
 
       const staff = await StaffModel.create({
         staffId,
@@ -82,8 +83,8 @@ export class MiscController {
       const authUser = (req as any).user;
       const { title, customer, relatedType = 'Lead', relatedId, assignedStaff, assignedStaffId, followUpDate, notes, priority = 'Medium' } = req.body;
 
-      const count = await FollowUpModel.countDocuments();
-      const followUpId = `FLP-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+      // Generate Unique Follow-Up ID
+      const followUpId = await generateUniqueFollowUpId();
 
       const followUp = await FollowUpModel.create({
         followUpId,

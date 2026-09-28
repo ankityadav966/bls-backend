@@ -6,6 +6,7 @@ import { ActivityLogModel } from '../models/ActivityLog.model';
 import { sendSuccess, sendPaginated } from '../utils/apiResponse';
 import { AppError } from '../middleware/error.middleware';
 import { PaymentStatus, ActivityAction } from '../constants';
+import { generateUniqueInvoiceId } from '../utils/idGenerator';
 
 export class InvoiceController {
   // GET /api/v1/invoices
@@ -97,8 +98,8 @@ export class InvoiceController {
         }
       }
 
-      const count = await InvoiceModel.countDocuments();
-      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+      // Generate Unique Invoice Number
+      const invoiceNumber = await generateUniqueInvoiceId();
 
       // Calculate totals
       let subtotal = 0;

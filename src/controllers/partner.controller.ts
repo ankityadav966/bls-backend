@@ -10,6 +10,7 @@ import { sendSuccess, sendPaginated } from '../utils/apiResponse';
 import { AppError } from '../middleware/error.middleware';
 import { PartnerStatus, UserRole, ActivityAction } from '../constants';
 import { logger } from '../utils/logger';
+import { generateUniquePartnerId } from '../utils/idGenerator';
 
 export class PartnerController {
   // POST /api/v1/partners/register or /api/partners (Public Website / Partner Portal application)
@@ -43,9 +44,8 @@ export class PartnerController {
         throw new AppError('An account with this email already exists', 409);
       }
 
-      // Generate Partner Code
-      const partnerCount = await PartnerModel.countDocuments();
-      const partnerId = `PTR-${new Date().getFullYear()}-${String(partnerCount + 1).padStart(4, '0')}`;
+      // Generate Unique Partner Code
+      const partnerId = await generateUniquePartnerId();
 
       // Create User account (Default password if not provided in public form)
       const userPassword = password || 'Partner@123';
@@ -103,6 +103,78 @@ export class PartnerController {
           status: partner.status
         }
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // POST /api/v1/partners (Admin creates partner directly)
+  static async createPartnerAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const {
+        partnerName,
+        name,
+        email,
+        mobile,
+        phone,
+        qualification,
+        firmName,
+        city,
+        state,
+        password = 'Partner@123',
+        status = PartnerStatus.APPROVED
+      } = req.body;
+
+      const pName = partnerName || name;
+      const pPhone = mobile || phone;
+      if (!pName || !email || !pPhone) {
+        throw new AppError('Partner name, email, and mobile are required', 400);
+      }
+
+      const existingUser = await UserModel.findOne({ email: email.toLowerCase().trim() });
+      if (existingUser) {
+        throw new AppError('An account with this email already exists', 409);
+      }
+
+      const partnerId = await generateUniquePartnerId();
+      const passwordHash = await bcrypt.hash(password, 12);
+
+      const user = await UserModel.create({
+        name: pName.trim(),
+        email: email.toLowerCase().trim(),
+        phone: pPhone.trim(),
+        passwordHash,
+        role: UserRole.PARTNER,
+        status: 'ACTIVE'
+      });
+
+      const partner = await PartnerModel.create({
+        partnerId,
+        userId: user._id,
+        partnerName: pName.trim(),
+        email: email.toLowerCase().trim(),
+        mobile: pPhone.trim(),
+        firmName: firmName || `${pName}'s Firm`,
+        qualification: qualification || 'Chartered Accountant',
+        city: city || 'New Delhi',
+        state: state || 'Delhi',
+        status,
+        totalReferrals: 0,
+        activeClientsCount: 0,
+        commercials: [],
+        notes: `Login Credentials: ID=${email.toLowerCase().trim()} | Password=${password}`
+      });
+
+      user.partnerId = partner._id;
+      await user.save();
+
+      sendSuccess(res, 'Partner created successfully by Admin', {
+        partner,
+        credentials: {
+          email: email.toLowerCase().trim(),
+          password
+        }
+      }, 201);
     } catch (error) {
       next(error);
     }

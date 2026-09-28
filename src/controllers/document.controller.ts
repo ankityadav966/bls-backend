@@ -12,6 +12,7 @@ import { AppError } from '../middleware/error.middleware';
 import { DocumentStatus, ActivityAction, UserRole } from '../constants';
 import { logger } from '../utils/logger';
 import { uploadFileToCloudinary } from '../config/cloudinary';
+import { generateUniqueDocumentId } from '../utils/idGenerator';
 
 export class DocumentController {
   // POST /api/v1/documents/upload
@@ -29,8 +30,8 @@ export class DocumentController {
       const validClientId = clientId && mongoose.Types.ObjectId.isValid(clientId) ? new mongoose.Types.ObjectId(clientId) : undefined;
       const validUserId = authUser?.userId && mongoose.Types.ObjectId.isValid(authUser.userId) ? new mongoose.Types.ObjectId(authUser.userId) : undefined;
 
-      const count = await DocumentModel.countDocuments();
-      const documentId = `DOC-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+      // Generate Unique Document ID
+      const documentId = await generateUniqueDocumentId();
 
       // Resolve linked service request if any
       let linkedSr: any = null;

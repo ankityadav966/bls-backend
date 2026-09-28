@@ -9,6 +9,7 @@ import { NotificationModel } from '../models/Notification.model';
 import { sendSuccess, sendPaginated } from '../utils/apiResponse';
 import { AppError } from '../middleware/error.middleware';
 import { RequestStatus, UserRole, ActivityAction } from '../constants';
+import { generateUniqueRequestId } from '../utils/idGenerator';
 
 export class RequestController {
   // GET /api/v1/requests (Multi-portal with RBAC)
@@ -129,8 +130,8 @@ export class RequestController {
       const client = await ClientModel.findById(clientId);
       const reqClientName = client ? client.clientName : (clientName || 'Client');
 
-      const count = await ServiceRequestModel.countDocuments();
-      const requestId = `SR-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+      // Generate Unique Request ID
+      const requestId = await generateUniqueRequestId();
 
       const serviceReq = await ServiceRequestModel.create({
         requestId,

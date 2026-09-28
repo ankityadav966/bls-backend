@@ -11,6 +11,7 @@ import { AppError } from '../middleware/error.middleware';
 import { LeadStatus, RequestStatus, ActivityAction } from '../constants';
 import { QueueService } from '../services/queue.service';
 import { logger } from '../utils/logger';
+import { generateUniqueLeadId, generateUniqueRequestId } from '../utils/idGenerator';
 
 export class LeadController {
   // POST /api/v1/leads/public or /api/enquiries (Public Website Contact/Enquiry Form)
@@ -44,9 +45,8 @@ export class LeadController {
         throw new AppError('Full name, email, and phone number are required', 400);
       }
 
-      // Generate Reference Code
-      const count = await LeadModel.countDocuments();
-      const referenceId = `LD-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+      // Generate Unique Reference Code
+      const referenceId = await generateUniqueLeadId();
 
       // Create Lead in MongoDB
       const lead = await LeadModel.create({
@@ -182,8 +182,8 @@ export class LeadController {
         throw new AppError('Name, email, and phone are required', 400);
       }
 
-      const count = await LeadModel.countDocuments();
-      const referenceId = `LD-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+      // Generate Unique Reference Code
+      const referenceId = await generateUniqueLeadId();
 
       const lead = await LeadModel.create({
         referenceId,
@@ -249,21 +249,50 @@ export class LeadController {
           timestamp: new Date()
         });
 
-        // Notify partner if partner has userId
+        // Ensure partner has an associated ServiceRequest so it immediately shows in the Partner Portal
         try {
           const partner = await PartnerModel.findById(assignedPartnerId);
-          if (partner && partner.userId) {
-            await NotificationModel.create({
-              notificationId: `NOTIF-${Date.now()}`,
-              userId: partner.userId,
-              title: 'New Client Lead Assigned',
-              description: `You have been assigned lead ${lead.referenceId} (${lead.customerName} - ${lead.serviceInterested}).`,
-              category: 'Lead',
-              link: '/requests'
+          if (partner) {
+            const existingReq = await ServiceRequestModel.findOne({
+              $or: [
+                { notes: { $regex: lead.referenceId, $options: 'i' } },
+                { clientName: lead.customerName, service: lead.serviceInterested }
+              ]
             });
+
+            if (existingReq) {
+              existingReq.partnerId = partner._id;
+              await existingReq.save();
+            } else {
+              const reqId = await generateUniqueRequestId();
+              await ServiceRequestModel.create({
+                requestId: reqId,
+                clientName: lead.customerName,
+                service: lead.serviceInterested || 'Advisory Consultation',
+                category: 'Business & Advisory Services',
+                partnerId: partner._id,
+                status: 'Submitted',
+                priority: 'Medium',
+                feeAmount: lead.estimatedValue || 0,
+                notes: [`Enquiry Reference: ${lead.referenceId}. Customer Contact: ${lead.mobile} | ${lead.email}. Notes: ${notes || lead.serviceInterested}`],
+                submissionDate: new Date(),
+                dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+              });
+            }
+
+            if (partner.userId) {
+              await NotificationModel.create({
+                notificationId: `NOTIF-${Date.now()}`,
+                userId: partner.userId,
+                title: 'New Client Lead Assigned',
+                description: `You have been assigned lead ${lead.referenceId} (${lead.customerName} - ${lead.serviceInterested}).`,
+                category: 'Lead',
+                link: '/requests'
+              });
+            }
           }
-        } catch (e) {
-          logger.warn(`Could not dispatch notification to partner ${assignedPartnerId}`);
+        } catch (e: any) {
+          logger.warn(`Could not dispatch notification or sync request to partner ${assignedPartnerId}: ${e.message}`);
         }
       }
 
