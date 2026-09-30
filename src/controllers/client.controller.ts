@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Request, Response, NextFunction } from 'express';
 import { ClientModel } from '../models/Client.model';
 import { ServiceRequestModel } from '../models/ServiceRequest.model';
@@ -68,9 +69,18 @@ export class ClientController {
   // GET /api/v1/clients/:id
   static async getClientById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const client = await ClientModel.findById(req.params.id)
-        .populate('partnerId', 'partnerName firmName email mobile')
-        .lean();
+      const { id } = req.params;
+      const isObjectId = mongoose.Types.ObjectId.isValid(id);
+      const client = isObjectId
+        ? await ClientModel.findById(id).populate('partnerId', 'partnerName firmName email mobile').lean()
+        : await ClientModel.findOne({
+            $or: [
+              { clientId: id },
+              { clientId: new RegExp(`-${id}$`, 'i') },
+              { clientId: new RegExp(`${id}$`, 'i') },
+              { clientId: new RegExp(`0*${id}$`, 'i') }
+            ]
+          }).populate('partnerId', 'partnerName firmName email mobile').lean();
 
       if (!client) {
         throw new AppError('Client not found', 404);
@@ -142,7 +152,12 @@ export class ClientController {
   static async updateClient(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const authUser = (req as any).user;
-      const client = await ClientModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      const { id } = req.params;
+      const isObjectId = mongoose.Types.ObjectId.isValid(id);
+      
+      const client = isObjectId
+        ? await ClientModel.findByIdAndUpdate(id, req.body, { new: true })
+        : await ClientModel.findOneAndUpdate({ clientId: id }, req.body, { new: true });
 
       if (!client) {
         throw new AppError('Client not found', 404);
@@ -167,15 +182,27 @@ export class ClientController {
   // GET /api/v1/clients/:id/overview (Client 360 Overview)
   static async getClientOverview(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const client = await ClientModel.findById(req.params.id).lean();
+      const { id } = req.params;
+      const isObjectId = mongoose.Types.ObjectId.isValid(id);
+      const client = isObjectId
+        ? await ClientModel.findById(id).lean()
+        : await ClientModel.findOne({
+            $or: [
+              { clientId: id },
+              { clientId: new RegExp(`-${id}$`, 'i') },
+              { clientId: new RegExp(`${id}$`, 'i') },
+              { clientId: new RegExp(`0*${id}$`, 'i') }
+            ]
+          }).lean();
+
       if (!client) {
         throw new AppError('Client not found', 404);
       }
 
       const [requests, documents, invoices] = await Promise.all([
-        ServiceRequestModel.find({ clientId: client._id }).sort({ createdAt: -1 }).lean(),
-        DocumentModel.find({ clientId: client._id }).sort({ createdAt: -1 }).lean(),
-        InvoiceModel.find({ clientId: client._id }).sort({ createdAt: -1 }).lean()
+        ServiceRequestModel.find({ $or: [{ clientId: client._id }, { clientId: client.clientId }] }).sort({ createdAt: -1 }).lean(),
+        DocumentModel.find({ $or: [{ clientId: client._id }, { clientId: client.clientId }] }).sort({ createdAt: -1 }).lean(),
+        InvoiceModel.find({ $or: [{ clientId: client._id }, { clientId: client.clientId }] }).sort({ createdAt: -1 }).lean()
       ]);
 
       sendSuccess(res, 'Client 360 overview retrieved', {
