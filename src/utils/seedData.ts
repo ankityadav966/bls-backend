@@ -747,17 +747,22 @@ export const seedDatabase = async (): Promise<void> => {
     // 16. Company Master Settings
     await Settings.create({
       companyName: 'BLS AND COMPANY',
-      tagline: 'Chartered Accountants, Taxation & Corporate Advisory Services',
-      registrationNumber: 'ICAI-FRN-029811N',
-      frn: '029811N',
-      gstin: '07AAAFB2981N1ZG',
-      pan: 'AAAFB2981N',
-      email: 'info@blscompany.com',
-      phone: '+91 11 4982 3000',
-      alternatePhone: '+91 98110 44211',
-      headOfficeAddress: 'Level 4, Corporate Heights, Barakhamba Road, Connaught Place, New Delhi 110001',
-      branchOfficeAddress: 'Cabin 12, Level 2, Trade Centre, BKC, Bandra East, Mumbai 400051',
-      website: 'https://blscompany.com',
+      tagline: 'Precision in Taxation, Excellence in Corporate Advisory',
+      registrationNumber: 'ICAI-FRN-CA-Bhanwar-Lal-Saini',
+      email: 'Mohansaini995062@gmail.com',
+      phone: '+91 97843 43068',
+      alternatePhone: '+91 97843 43068',
+      whatsappNumber: '919784343068',
+      headOfficeAddress: 'Shop No 11, Krishna Vihar, Jaipur Rd, near Shivdhara Hospital, Magadh Nagar, Chomu, Rajasthan 303702',
+      branchOfficeAddress: 'Jaipur Road, Opp. Commercial Hub, Jaipur, Rajasthan 302001',
+      website: 'https://bls-public-website.vercel.app',
+      topBarAnnouncement: 'Advisory Desk Open • CA Bhanwar Lal Saini • Chomu & Jaipur',
+      navbarBrandTitle: 'BLS AND COMPANY',
+      navbarBrandSubtitle: 'Chartered Accountants & Advisors',
+      footerAboutText: 'BLS AND COMPANY, led by CA Bhanwar Lal Saini, is a premier multi-disciplinary Chartered Accountancy and corporate advisory firm. Offices in Chomu & Jaipur, Rajasthan.',
+      footerCopyright: `© ${new Date().getFullYear()} BLS AND COMPANY • CA Bhanwar Lal Saini & Associates. All rights reserved.`,
+      workingHours: 'Monday – Saturday: 9:30 AM – 6:30 PM (IST)',
+      adminNotificationEmail: 'Mohansaini995062@gmail.com',
     });
 
     logger.info('[Seeder] Master database successfully seeded with realistic CA firm operational data!');
