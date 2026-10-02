@@ -15,8 +15,11 @@ import { Knowledge } from './Knowledge.model';
 import { Notification } from './Notification.model';
 import { ActivityLog } from './ActivityLog.model';
 import { Settings } from './Settings.model';
+import { Blog, BlogModel } from './Blog.model';
 
 export {
+  Blog,
+  BlogModel,
   User,
   User as UserModel,
   Partner,

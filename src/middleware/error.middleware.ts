@@ -33,6 +33,17 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
     return sendError(res, `Invalid resource identifier format: ${err.value}`, 400);
   }
 
+  if (err.name === 'MulterError' || err.code === 'LIMIT_FILE_SIZE') {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return sendError(res, `File too large. Maximum allowed size is ${env.MAX_FILE_SIZE_MB}MB.`, 400);
+    }
+    return sendError(res, err.message || 'File upload failed. Please try a different image.', 400);
+  }
+
+  if (err.message && (err.message.includes('Unsupported file format') || err.message.includes('file'))) {
+    return sendError(res, err.message, 400);
+  }
+
   const statusCode = err.statusCode || 500;
   const message = statusCode === 500 && env.NODE_ENV === 'production'
     ? 'An unexpected internal server error occurred.'

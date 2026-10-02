@@ -9,6 +9,7 @@ import workRoutes from './work.routes';
 import documentRoutes from './document.routes';
 import invoiceRoutes from './invoice.routes';
 import dashboardRoutes from './dashboard.routes';
+import blogRoutes from './blog.routes';
 import miscRoutes from './misc.routes';
 import { LeadController } from '../controllers/lead.controller';
 import { PartnerController } from '../controllers/partner.controller';
@@ -19,6 +20,7 @@ const router = Router();
 // Compatibility aliases for existing Public Website forms
 router.post('/enquiries', apiLimiter, LeadController.submitPublicEnquiry);
 router.post('/partners', apiLimiter, PartnerController.registerPartner);
+router.use('/blogs', blogRoutes);
 
 const v1Router = Router();
 
@@ -33,6 +35,7 @@ v1Router.use('/work', workRoutes);
 v1Router.use('/documents', documentRoutes);
 v1Router.use('/invoices', invoiceRoutes);
 v1Router.use('/dashboard', dashboardRoutes);
+v1Router.use('/blogs', blogRoutes);
 v1Router.use('/', miscRoutes);
 
 router.use('/v1', v1Router);
